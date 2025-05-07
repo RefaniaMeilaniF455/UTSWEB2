@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SIAPA CEPAT DIA MENANG</title>
+</head>
+<body>
+  <h1>SIAPA CEPAT DIA MENANG</h1>
+  <label>Masukkan Nama Player: <input type="text" id="nama" /></label>
+  <button id="joinBtn">Gabung</button>
+  <p id="status">Silakan masukkan nama dan klik Gabung.</p>
+  <button id="clickBtn" disabled>Klik Saya!</button>
+
+  <script>
+    let socket;
+    let playerName = "";
+
+    const status = document.getElementById('status');
+    const namaInput = document.getElementById('nama');
+    const joinBtn = document.getElementById('joinBtn');
+    const button = document.getElementById('clickBtn');
+
+    joinBtn.onclick = () => {
+      playerName = namaInput.value.trim();
+      if (playerName === "") {
+        alert("Masukkan nama dulu!");
+        return;
+      }
+
+      socket = new WebSocket('ws://localhost:8080');
+      socket.onopen = () => {
+        status.textContent = 'Terhubung ke server. Tunggu pemain lain...';
+        socket.send(JSON.stringify({ type: "join", name: playerName }));
+      };
+
+      socket.onmessage = (event) => {
+        const msg = event.data;
+
+        if (msg.startsWith("countdown:")) {
+          const count = msg.split(":")[1];
+          status.textContent = `Bersiap... ${count}`;
+        } else if (msg === "start") {
+          status.textContent = "Game dimulai! Klik tombol secepatnya!";
+          button.disabled = false;
+        } else if (msg.startsWith("win:")) {
+          const winner = msg.split(":")[1];
+          status.textContent = `🏆 ${winner} menang!`;
+          button.disabled = true;
+        } else {
+          status.textContent = msg;
+        }
+      };
+    };
+
+    button.onclick = () => {
+      socket.send(JSON.stringify({ type: "click", name: playerName }));
+      button.disabled = true;
+    };
+  </script>
+</body>
+</html>
